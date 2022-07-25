@@ -5,6 +5,7 @@ const fs = require("fs");
 const PORT = 3003;
 const db = require("./src/db");
 const { hash, compare } = require("./src/bc");
+const auth = require("./src/jwt");
 
 const httpsServer = https.createServer(
     {
@@ -18,21 +19,34 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 
-app.post("/test", async (req, res) => {
-    console.log("request received", req.body);
-    if (req?.body?.username && req.body.password) {
+app.post("/signin", async (req, res) => {
+    if (req?.body?.username && req.body.password && req.body.first_name && req.body.last_name) {
         const username = req.body.username;
+        const first_name = req.body.firstName;
+        const last_name = req.body.lastName;
         const password = await hash(req.body.password);
 
         try {
-            await db.insert_user(username, password);
-            res.json("success!");
+            const existing_username = await db.check_username(username);
+
+            if (existing_username) {
+                res.json({ existing_username });
+
+            } else {
+                await db.insert_user(username, password, first_name, last_name);
+                const token = auth.createToken(username);
+                const refresh_token = auth.createRefreshToken(username);
+                res.json(token, refresh_token);
+            }
 
         } catch (err) {
             console.log("err in /signup", err);
-            res.json("fail!");
+            res.json(false);
         }
 
+    } else {
+        console.log("body malformed");
+        res.json(false);
     }
 });
 
