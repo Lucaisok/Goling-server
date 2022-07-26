@@ -22,21 +22,22 @@ app.use(express.urlencoded({ extended: false }));
 app.post("/signin", async (req, res) => {
     if (req?.body?.username && req.body.password && req.body.first_name && req.body.last_name) {
         const username = req.body.username;
-        const first_name = req.body.firstName;
-        const last_name = req.body.lastName;
+        const first_name = req.body.first_name;
+        const last_name = req.body.last_name;
         const password = await hash(req.body.password);
 
         try {
-            const existing_username = await db.check_username(username);
+            const existing_id = await db.getIdFromUsername(username);
 
-            if (existing_username) {
-                res.json({ existing_username });
+            if (existing_id.length) {
+                res.json({ existing_username: existing_id });
 
             } else {
                 await db.insert_user(username, password, first_name, last_name);
+                const id = await db.getIdFromUsername(username);
                 const token = auth.createToken(username);
                 const refresh_token = auth.createRefreshToken(username);
-                res.json(token, refresh_token);
+                res.json({ token, refresh_token, id });
             }
 
         } catch (err) {

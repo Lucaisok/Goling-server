@@ -7,14 +7,14 @@ module.exports.insert_user = (username, password, first_name, last_name) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
-                return connection.query("INSERT INTO users (username, password, first_name, last_name) VALUES (?, ?, ?, ?) ", [username, password, first_name, last_name]);
+                return connection.query("INSERT INTO users (username, password, first_name, last_name) VALUES (?, ?, ?, ?)", [username, password, first_name, last_name]);
         })
         .catch((err) => {
             console.log("error in insert_user", err);
         });
 };
 
-module.exports.check_username = (username) => {
+module.exports.getIdFromUsername = (username) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
@@ -24,3 +24,4 @@ module.exports.check_username = (username) => {
             console.log("error in insert_user", err);
         });
 };
+
