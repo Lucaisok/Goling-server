@@ -21,7 +21,29 @@ module.exports.getIdFromUsername = (username) => {
                 return connection.query("SELECT id FROM users WHERE username = (?)", [username]);
         })
         .catch((err) => {
-            console.log("error in insert_user", err);
+            console.log("error in getIdFromUsername", err);
+        });
+};
+
+module.exports.getHashFromUsername = (username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT password FROM users WHERE username = (?)", [username]);
+        })
+        .catch((err) => {
+            console.log("error in getHashFromUsername", err);
+        });
+};
+
+module.exports.getUserData = (username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT id, first_name, last_name FROM users WHERE username = (?)", [username]);
+        })
+        .catch((err) => {
+            console.log("error in getUserData", err);
         });
 };
 
