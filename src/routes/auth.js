@@ -31,7 +31,7 @@ router.post("/signin", async (req, res) => {
         }
 
     } else {
-        console.log("body malformed");
+        console.log("body malformed in /signup");
         res.json(false);
     }
 });
@@ -73,7 +73,22 @@ router.post("/login", async (req, res) => {
             res.json(false);
         }
     } else {
-        console.log("body, malformed");
+        console.log("body malformed in /login");
+        res.json(false);
+    }
+});
+
+router.post("/create-new-tokens", auth.requireRefreshAuth, async (req, res) => {
+    if (req?.body?.username) {
+
+        const username = req.body.username;
+        const token = auth.createToken(username);
+        const refreshToken = auth.createRefreshToken(username);
+
+        res.json({ token, refreshToken });
+
+    } else {
+        console.log("body malformed in /create-new-tokens");
         res.json(false);
     }
 });
