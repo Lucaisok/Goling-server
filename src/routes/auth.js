@@ -1,14 +1,26 @@
+require("dotenv").config({ path: "../secret.env" });
 const { Router } = require("express");
 const router = Router();
 const db = require("../db");
 const { hash, compare } = require("../bc");
 const auth = require("../jwt");
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'lucatomarelli1@gmail.com',
+        pass: process.env.TRANSPORTER_PWD
+    }
+});
+
 
 router.post("/signin", async (req, res) => {
-    if (req?.body?.username && req.body.password && req.body.first_name && req.body.last_name) {
+    if (req?.body?.username && req.body.password && req.body.first_name && req.body.last_name && req.body.email) {
         const username = req.body.username;
         const first_name = req.body.first_name;
         const last_name = req.body.last_name;
+        const email = req.body.email;
         const password = await hash(req.body.password);
 
         try {
@@ -18,10 +30,30 @@ router.post("/signin", async (req, res) => {
                 res.json({ existing_username: existing_id });
 
             } else {
-                await db.insert_user(username, password, first_name, last_name);
+                await db.insert_user(username, password, first_name, last_name, email);
                 const id = await db.getIdFromUsername(username);
                 const token = auth.createToken(username);
                 const refresh_token = auth.createRefreshToken(username);
+
+                const mailOptions = {
+                    from: 'lucatomarelli1@gmail.com',
+                    to: email,
+                    subject: 'Welcome to Goling!',
+                    html: `
+                      <h1>Hi ${first_name}</h1>
+                      <h2>Welcome to Goling</h2>
+                      <p>This is your username: ${username}</p>
+                    `
+                };
+
+                transporter.sendMail(mailOptions, function (error, info) {
+                    if (error) {
+                        console.log("error in signup, send confirmation email", error);
+                    } else {
+                        console.log(`confirmation email sent to ${mailOptions.to}: ${info.response}`);
+                    }
+                });
+
                 res.json({ token, refresh_token, id: id[0].id });
             }
 
@@ -90,6 +122,55 @@ router.post("/create-new-tokens", auth.requireRefreshAuth, async (req, res) => {
     } else {
         console.log("body malformed in /create-new-tokens");
         res.json(false);
+    }
+});
+
+router.post("/reset-password-email", async (req, res) => {
+    if (req?.body?.email) {
+        const email = req.body.email;
+
+        try {
+            const registeredUser = await db.getUserDataFromEmail(email);
+            if (registeredUser.length) {
+                const firstName = registeredUser[0].first_name;
+
+                //generate random code, save it to the db (column with timestamp for exp date?) and send it along the email.
+
+                const mailOptions = {
+                    from: 'lucatomarelli1@gmail.com',
+                    to: email,
+                    subject: 'Reset your Goling Password',
+                    html: `
+                      <h1>Hi ${firstName}</h1>
+                      <p>Insert the following code to reset your password:</p>
+                      <p><strong>Code</strong></p>
+                    `
+                };
+
+                transporter.sendMail(mailOptions, function (error, info) {
+                    if (error) {
+                        console.log("error in reset-password-email, send email", error);
+                        res.json({ serverError: true });
+
+                    } else {
+                        console.log(`reset-password-email email sent to ${mailOptions.to}: ${info.response}`);
+                        res.json({ success: true });
+                    }
+                });
+
+            } else {
+                res.json({ success: false });
+            }
+
+        } catch (err) {
+            res.json({ serverError: false });
+
+        }
+
+    } else {
+        console.log("body malformed in /reset-password-email");
+        res.json({ serverError: true });
+
     }
 });
 
