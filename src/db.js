@@ -58,3 +58,14 @@ module.exports.getUserDataFromEmail = (email) => {
         });
 };
 
+module.exports.updateFiveDigitCode = (code, email) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("UPDATE users SET reset_pwd_code = (?) WHERE email = (?)", [code, email]);
+        })
+        .catch((err) => {
+            console.log("error in updateFiveDigitCode", err);
+        });
+};
+

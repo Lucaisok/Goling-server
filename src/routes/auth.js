@@ -136,6 +136,12 @@ router.post("/reset-password-email", async (req, res) => {
 
                 //generate random code, save it to the db (column with timestamp for exp date?) and send it along the email.
 
+                const fiveDigitCode = Math.floor(Math.random() * 90000) + 10000;
+
+                await db.updateFiveDigitCode(fiveDigitCode, email);
+
+                setTimeout(function () { db.updateFiveDigitCode(1, email); }, 5 * 60 * 1000);
+
                 const mailOptions = {
                     from: 'lucatomarelli1@gmail.com',
                     to: email,
@@ -143,7 +149,7 @@ router.post("/reset-password-email", async (req, res) => {
                     html: `
                       <h1>Hi ${firstName}</h1>
                       <p>Insert the following code to reset your password:</p>
-                      <p><strong>Code</strong></p>
+                      <p><strong>${fiveDigitCode}</strong></p>
                     `
                 };
 
