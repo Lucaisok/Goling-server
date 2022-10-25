@@ -4,6 +4,7 @@ const https = require("https");
 const fs = require("fs");
 const PORT = 3003;
 const auth = require("./src/routes/auth");
+const cors = require('cors');
 
 const httpsServer = https.createServer(
     {
@@ -15,6 +16,7 @@ const httpsServer = https.createServer(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cors());
 
 app.use(auth);
 
