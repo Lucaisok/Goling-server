@@ -69,3 +69,13 @@ module.exports.updateFiveDigitCode = (code, email) => {
         });
 };
 
+module.exports.getUserDataFromId = (id) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT first_name, last_name, username FROM users WHERE id = (?)", [id]);
+        })
+        .catch((err) => {
+            console.log("error in getUserDataFromId", err);
+        });
+};

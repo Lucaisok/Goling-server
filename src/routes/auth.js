@@ -180,4 +180,21 @@ router.post("/reset-password-email", async (req, res) => {
     }
 });
 
+router.post("/getUserData", auth.requireAuth, async (req, res) => {
+    if (req?.body?.parsedUserId) {
+        const userId = req.body.parsedUserId;
+
+        try {
+            const userData = await db.getUserDataFromId(userId);
+
+            if (userData.length) {
+                res.json(userData[0]);
+            }
+
+        } catch (err) {
+            console.log("err", err);
+        }
+    }
+});
+
 module.exports = router;
