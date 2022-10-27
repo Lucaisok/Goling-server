@@ -79,3 +79,25 @@ module.exports.getUserDataFromId = (id) => {
             console.log("error in getUserDataFromId", err);
         });
 };
+
+module.exports.retrieveFiveDigitCode = (email) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT reset_pwd_code FROM users WHERE email = (?)", [email]);
+        })
+        .catch((err) => {
+            console.log("error in retrieveFiveDigitCode", err);
+        });
+};
+
+module.exports.updatePassword = (password, email) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("UPDATE users SET password = (?) WHERE email = (?)", [password, email]);
+        })
+        .catch((err) => {
+            console.log("error in updatePassword", err);
+        });
+};

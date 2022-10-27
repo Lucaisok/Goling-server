@@ -180,6 +180,50 @@ router.post("/reset-password-email", async (req, res) => {
     }
 });
 
+router.post("/verify-code", async (req, res) => {
+    console.log("req?.body?", req?.body);
+    if (req?.body?.code && req?.body?.email) {
+
+        const code = JSON.parse(req.body.code);
+        const email = req.body.email;
+
+        try {
+            const dbCode = await db.retrieveFiveDigitCode(email);
+
+            if (dbCode[0].reset_pwd_code == code) {
+                res.json({ success: true });
+
+            } else {
+                res.json({ success: false });
+            }
+
+        } catch (err) {
+            console.log("err", err);
+        }
+
+    }
+});
+
+router.post("/update-password", async (req, res) => {
+
+    if (req?.body?.password && req?.body?.email) {
+        const email = req.body.email;
+
+        try {
+            const password = await hash(req.body.password);
+            await db.updatePassword(password, email);
+
+            res.json({ success: true });
+
+        } catch (err) {
+            console.log("err", err);
+            res.json({ success: false });
+
+        }
+    }
+
+});
+
 router.post("/getUserData", auth.requireAuth, async (req, res) => {
     if (req?.body?.parsedUserId) {
         const userId = req.body.parsedUserId;
