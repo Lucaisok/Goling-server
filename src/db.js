@@ -101,3 +101,14 @@ module.exports.updatePassword = (password, email) => {
             console.log("error in updatePassword", err);
         });
 };
+
+module.exports.getUsers = () => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT username FROM users", []);
+        })
+        .catch((err) => {
+            console.log("error in getUsers", err);
+        });
+};
