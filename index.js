@@ -29,10 +29,12 @@ const io = new Server(httpsServer, {
 });
 
 io.on('connection', (socket) => {
+    //retrieve username and append it to the socket
     const { username } = socket.handshake.query;
     socket.username = username;
     console.log(`User connected, socketId: ${socket.id}, username: ${username}`);
 
+    //retrieve a list of all connected users and send to all the connected clients
     const users = [];
     for (let [id, socket] of io.of("/").sockets) {
         users.push({
@@ -43,6 +45,16 @@ io.on('connection', (socket) => {
     console.log("users", users);
     io.emit("users", users);
 
+    //check if socket duplicates, if so reload that client
+    const activeSocketInstances = [];
+    for (let i = 0; i < users.length; i++) {
+        if (users[i].username === username) activeSocketInstances.push(users[i].username);
+    }
+    if (activeSocketInstances.length > 1) {
+        socket.emit("socket-duplicate");
+    }
+
+    //socket events
     socket.on("join-room", (data) => {
         if (data.username && data.room && data.chatPartner) {
             const { username, room, chatPartner } = data;
