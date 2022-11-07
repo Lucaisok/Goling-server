@@ -5,12 +5,9 @@ const fs = require("fs");
 const PORT = 3003;
 const auth = require("./src/routes/auth");
 const search = require("./src/routes/search");
+const user = require("./src/routes/user");
 const cors = require('cors');
-const { Server } = require('socket.io'); // Add this
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cors());
+const { Server } = require('socket.io');
 
 const httpsServer = https.createServer(
     {
@@ -27,6 +24,10 @@ const io = new Server(httpsServer, {
         methods: ['GET', 'POST'],
     },
 });
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cors());
 
 io.on('connection', (socket) => {
     //retrieve username and append it to the socket
@@ -65,18 +66,19 @@ io.on('connection', (socket) => {
     socket.on("message", ({ content, to }) => {
         console.log("content", content);
         console.log("to", to);
-        socket.to(to).emit("private message", {
+        socket.to(to).emit("message", {
             content,
-            from: socket.id,
+            from: socket.username,
         });
     });
 
-    socket.on('disconnect', () => {
-        console.log(`user disconnected, socketId: ${socket.id}, username: ${username}`);
+    socket.on('disconnect', (reason) => {
+        console.log(`user disconnected, socketId: ${socket.id}, username: ${username}, reason: ${reason}`);
     });
 });
 
 app.use(auth);
+app.use(user);
 app.use(search);
 
 httpsServer.listen(PORT, () => console.log(`Goling server is listening on port ${PORT}.`));

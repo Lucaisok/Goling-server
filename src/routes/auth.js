@@ -14,13 +14,13 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-
 router.post("/signin", async (req, res) => {
-    if (req?.body?.username && req.body.password && req.body.first_name && req.body.last_name && req.body.email) {
+    if (req?.body?.username && req.body.password && req.body.first_name && req.body.last_name && req.body.email && req.body.language) {
         const username = req.body.username;
         const first_name = req.body.first_name;
         const last_name = req.body.last_name;
         const email = req.body.email;
+        const language = req.body.language;
         const password = await hash(req.body.password);
 
         try {
@@ -30,7 +30,7 @@ router.post("/signin", async (req, res) => {
                 res.json({ existing_username: existing_id });
 
             } else {
-                await db.insert_user(username, password, first_name, last_name, email);
+                await db.insert_user(username, password, first_name, last_name, email, language);
                 const id = await db.getIdFromUsername(username);
                 const token = auth.createToken(username);
                 const refresh_token = auth.createRefreshToken(username);
@@ -93,9 +93,10 @@ router.post("/login", async (req, res) => {
                     const id = userData[0].id;
                     const first_name = userData[0].first_name;
                     const last_name = userData[0].last_name;
+                    const language = userData[0].language;
                     const token = auth.createToken(username);
                     const refresh_token = auth.createRefreshToken(username);
-                    res.json({ id, first_name, last_name, token, refresh_token });
+                    res.json({ id, first_name, last_name, token, refresh_token, language });
                 }
 
             }

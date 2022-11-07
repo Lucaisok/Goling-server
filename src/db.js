@@ -3,11 +3,11 @@ const { dbConf } = require("../config");
 
 const maria = mariadb.createConnection(dbConf);
 
-module.exports.insert_user = (username, password, first_name, last_name, email) => {
+module.exports.insert_user = (username, password, first_name, last_name, email, language) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
-                return connection.query("INSERT INTO users (username, password, first_name, last_name, email) VALUES (?, ?, ?, ?, ?)", [username, password, first_name, last_name, email]);
+                return connection.query("INSERT INTO users (username, password, first_name, last_name, email, language) VALUES (?, ?, ?, ?, ?, ?)", [username, password, first_name, last_name, email, language]);
         })
         .catch((err) => {
             console.log("error in insert_user", err);
@@ -40,7 +40,7 @@ module.exports.getUserData = (username) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
-                return connection.query("SELECT id, first_name, last_name FROM users WHERE username = (?)", [username]);
+                return connection.query("SELECT id, first_name, last_name, language FROM users WHERE username = (?)", [username]);
         })
         .catch((err) => {
             console.log("error in getUserData", err);
@@ -73,7 +73,7 @@ module.exports.getUserDataFromId = (id) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
-                return connection.query("SELECT first_name, last_name, username FROM users WHERE id = (?)", [id]);
+                return connection.query("SELECT first_name, last_name, username, language FROM users WHERE id = (?)", [id]);
         })
         .catch((err) => {
             console.log("error in getUserDataFromId", err);
@@ -110,5 +110,16 @@ module.exports.getUsers = () => {
         })
         .catch((err) => {
             console.log("error in getUsers", err);
+        });
+};
+
+module.exports.updateLanguage = (language, username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("UPDATE users SET language = (?) WHERE username = (?)", [language, username]);
+        })
+        .catch((err) => {
+            console.log("error in updateLanguage", err);
         });
 };
