@@ -123,3 +123,38 @@ module.exports.updateLanguage = (language, username) => {
             console.log("error in updateLanguage", err);
         });
 };
+
+module.exports.getSocket = (username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT socket_id FROM users WHERE username = (?)", [username]);
+        })
+        .catch((err) => {
+            console.log("error in getSocket", err);
+        });
+};
+
+module.exports.updateSocketId = (socket, username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("UPDATE users SET socket_id = (?) WHERE username = (?)", [socket, username]);
+        })
+        .catch((err) => {
+            console.log("error in updateSocketId", err);
+        });
+};
+
+module.exports.getLanguage = (username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT language FROM users WHERE username = (?)", [username]);
+        })
+        .catch((err) => {
+            console.log("error in getLanguage", err);
+        });
+};
+
+

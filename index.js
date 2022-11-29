@@ -6,8 +6,10 @@ const PORT = 3003;
 const auth = require("./src/routes/auth");
 const search = require("./src/routes/search");
 const user = require("./src/routes/user");
+const db = require("./src/db");
 const cors = require('cors');
 const { Server } = require('socket.io');
+const { translate } = require("./src/externalCalls");
 
 const httpsServer = https.createServer(
     {
@@ -29,30 +31,41 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     //retrieve username and append it to the socket
     const { username } = socket.handshake.query;
     socket.username = username;
     console.log(`User connected, socketId: ${socket.id}, username: ${username}`);
 
+    let connectedUsers = [];
+
     //retrieve a list of all connected users and send to all the connected clients
-    const users = [];
     for (let [id, socket] of io.of("/").sockets) {
-        users.push({
+        connectedUsers.push({
             socketId: id,
             username: socket.username,
         });
     }
-    console.log("users", users);
-    io.emit("users", users);
+
+    console.log("connectedUsers", connectedUsers);
+    io.emit("users", connectedUsers);
 
     //check if socket duplicates, if so reload that client
     const activeSocketInstances = [];
-    for (let i = 0; i < users.length; i++) {
-        if (users[i].username === username) activeSocketInstances.push(users[i].username);
+    for (let i = 0; i < connectedUsers.length; i++) {
+        if (connectedUsers[i].username === username) activeSocketInstances.push(connectedUsers[i].username);
     }
     if (activeSocketInstances.length > 1) {
         socket.emit("socket-duplicate");
+    }
+
+    //on reconnection, update socket_id in db
+    try {
+        await db.updateSocketId(socket.id, username);
+
+    } catch (err) {
+        console.log("err", err);
+
     }
 
     //socket events
@@ -63,13 +76,42 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on("message", ({ content, to }) => {
-        console.log("content", content);
-        console.log("to", to);
-        socket.to(to).emit("message", {
-            content,
-            from: socket.username,
-        });
+    socket.on("message", async ({ content, language, to }) => {
+
+        const onlineReceiver = connectedUsers.find(user => user.username === to);
+
+        if (onlineReceiver) {
+            //receiver is online
+            try {
+                const receiverLanguage = await db.getLanguage(onlineReceiver.username);
+
+                if (language === receiverLanguage[0].language) {
+                    //directly send message to receiver
+                    socket.to(onlineReceiver.socketId).emit("message", {
+                        content,
+                        from: socket.username,
+                    });
+
+                } else {
+                    //translate message and send to receiver!
+                    const result = await translate(content, language, receiverLanguage[0].language);
+                    if (result.translatedText) {
+                        socket.to(onlineReceiver.socketId).emit("message", {
+                            content: result.translatedText,
+                            from: socket.username,
+                        });
+                    }
+                }
+
+            } catch (err) {
+                console.log("err", err);
+
+            }
+
+        } else {
+            //receiver is not online, send notification
+            console.log("receiver is not online, send notification");
+        }
     });
 
     socket.on('disconnect', (reason) => {
