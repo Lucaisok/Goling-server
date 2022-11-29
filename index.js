@@ -31,6 +31,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 
+let onlineUsers = [];
+
 io.on('connection', async (socket) => {
     //retrieve username and append it to the socket
     const { username } = socket.handshake.query;
@@ -38,7 +40,6 @@ io.on('connection', async (socket) => {
     console.log(`User connected, socketId: ${socket.id}, username: ${username}`);
 
     let connectedUsers = [];
-
     //retrieve a list of all connected users and send to all the connected clients
     for (let [id, socket] of io.of("/").sockets) {
         connectedUsers.push({
@@ -47,11 +48,11 @@ io.on('connection', async (socket) => {
         });
     }
 
-    console.log("connectedUsers", connectedUsers);
+    onlineUsers = connectedUsers;
     io.emit("users", connectedUsers);
 
     //check if socket duplicates, if so reload that client
-    const activeSocketInstances = [];
+    let activeSocketInstances = [];
     for (let i = 0; i < connectedUsers.length; i++) {
         if (connectedUsers[i].username === username) activeSocketInstances.push(connectedUsers[i].username);
     }
@@ -77,40 +78,42 @@ io.on('connection', async (socket) => {
     });
 
     socket.on("message", async ({ content, language, to }) => {
+        if (content && language && to) {
 
-        const onlineReceiver = connectedUsers.find(user => user.username === to);
+            const onlineReceiver = onlineUsers.find(user => user.username === to);
 
-        if (onlineReceiver) {
-            //receiver is online
-            try {
-                const receiverLanguage = await db.getLanguage(onlineReceiver.username);
+            if (onlineReceiver) {
+                //receiver is online
+                try {
+                    const receiverLanguage = await db.getLanguage(onlineReceiver.username);
 
-                if (language === receiverLanguage[0].language) {
-                    //directly send message to receiver
-                    socket.to(onlineReceiver.socketId).emit("message", {
-                        content,
-                        from: socket.username,
-                    });
-
-                } else {
-                    //translate message and send to receiver!
-                    const result = await translate(content, language, receiverLanguage[0].language);
-                    if (result.translatedText) {
+                    if (language === receiverLanguage[0].language) {
+                        //directly send message to receiver
                         socket.to(onlineReceiver.socketId).emit("message", {
-                            content: result.translatedText,
+                            content,
                             from: socket.username,
                         });
+
+                    } else {
+                        //translate message and send to receiver!
+                        const result = await translate(content, language, receiverLanguage[0].language);
+                        if (result.translatedText) {
+                            socket.to(onlineReceiver.socketId).emit("message", {
+                                content: result.translatedText,
+                                from: socket.username,
+                            });
+                        }
                     }
+
+                } catch (err) {
+                    console.log("err", err);
+
                 }
 
-            } catch (err) {
-                console.log("err", err);
-
+            } else {
+                //receiver is not online, send notification
+                console.log("receiver is not online, send notification");
             }
-
-        } else {
-            //receiver is not online, send notification
-            console.log("receiver is not online, send notification");
         }
     });
 
