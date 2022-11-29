@@ -51,6 +51,8 @@ io.on('connection', async (socket) => {
     onlineUsers = connectedUsers;
     io.emit("users", connectedUsers);
 
+    console.log("connectedUsers", connectedUsers);
+
     //check if socket duplicates, if so reload that client
     let activeSocketInstances = [];
     for (let i = 0; i < connectedUsers.length; i++) {
