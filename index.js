@@ -6,6 +6,7 @@ const PORT = 3003;
 const auth = require("./src/routes/auth");
 const search = require("./src/routes/search");
 const user = require("./src/routes/user");
+const chat = require("./src/routes/chat");
 const db = require("./src/db");
 const cors = require('cors');
 const { Server } = require('socket.io');
@@ -35,9 +36,10 @@ let onlineUsers = [];
 
 io.on('connection', async (socket) => {
     //retrieve username and append it to the socket
-    const { username } = socket.handshake.query;
+    const { username, id } = socket.handshake.query;
     socket.username = username;
-    console.log(`User connected, socketId: ${socket.id}, username: ${username}`);
+    socket.userId = id;
+    console.log(`User connected, socketId: ${socket.id}, username: ${socket.username}, userId: ${socket.userId}`);
 
     let connectedUsers = [];
     //retrieve a list of all connected users and send to all the connected clients
@@ -45,6 +47,7 @@ io.on('connection', async (socket) => {
         connectedUsers.push({
             socketId: id,
             username: socket.username,
+            userId: socket.userId
         });
     }
 
@@ -72,49 +75,50 @@ io.on('connection', async (socket) => {
     }
 
     //socket events
-    socket.on("join-room", (data) => {
-        if (data.username && data.room && data.chatPartner) {
-            const { username, room, chatPartner } = data;
-            console.log("username", username, "room", room, "chatPartner", chatPartner);
-        }
-    });
+    // socket.on("join-room", (data) => {
+    //     if (data.username && data.room && data.chatPartner) {
+    //         const { username, room, chatPartner } = data;
+    //         console.log("username", username, "room", room, "chatPartner", chatPartner);
+    //     }
+    // });
 
     socket.on("message", async ({ content, language, to }) => {
         if (content && language && to) {
-
+            const receiverData = await db.getLanguageAndId(to);
+            //this is basically the "name" of the conversation, and is made of a sorted array containing the users id´s
+            const usersArray = [parseInt(socket.userId), receiverData[0].id].sort(function (a, b) { return a - b; });
             const onlineReceiver = onlineUsers.find(user => user.username === to);
 
-            if (onlineReceiver) {
-                //receiver is online
-                try {
-                    const receiverLanguage = await db.getLanguage(onlineReceiver.username);
+            try {
+                if (language === receiverData[0].language) {
 
-                    if (language === receiverLanguage[0].language) {
-                        //directly send message to receiver
+                    await db.insert_message(username, to, content, content, JSON.stringify(usersArray), language, language, !Boolean(onlineReceiver));
+
+                    if (onlineReceiver) {
                         socket.to(onlineReceiver.socketId).emit("message", {
                             content,
                             from: socket.username,
                         });
-
-                    } else {
-                        //translate message and send to receiver!
-                        const result = await translate(content, language, receiverLanguage[0].language);
-                        if (result.translatedText) {
-                            socket.to(onlineReceiver.socketId).emit("message", {
-                                content: result.translatedText,
-                                from: socket.username,
-                            });
-                        }
                     }
 
-                } catch (err) {
-                    console.log("err", err);
+                } else {
+                    //translate message and send to receiver!
+                    const result = await translate(content, language, receiverData[0].language);
+
+                    await db.insert_message(username, to, content, result.translatedText, JSON.stringify(usersArray), language, receiverData[0].language, !Boolean(onlineReceiver));
+
+                    if (onlineReceiver) {
+                        socket.to(onlineReceiver.socketId).emit("message", {
+                            content: result.translatedText,
+                            from: socket.username,
+                        });
+                    }
 
                 }
 
-            } else {
-                //receiver is not online, send notification
-                console.log("receiver is not online, send notification");
+            } catch (err) {
+                console.log("err", err);
+
             }
         }
     });
@@ -126,6 +130,7 @@ io.on('connection', async (socket) => {
 
 app.use(auth);
 app.use(user);
+app.use(chat);
 app.use(search);
 
 httpsServer.listen(PORT, () => console.log(`Goling server is listening on port ${PORT}.`));

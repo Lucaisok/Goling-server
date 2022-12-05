@@ -146,14 +146,47 @@ module.exports.updateSocketId = (socket, username) => {
         });
 };
 
-module.exports.getLanguage = (username) => {
+module.exports.getId = (username) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
-                return connection.query("SELECT language FROM users WHERE username = (?)", [username]);
+                return connection.query("SELECT id FROM users WHERE username = (?)", [username]);
+        })
+        .catch((err) => {
+            console.log("error in getId", err);
+        });
+};
+
+module.exports.getLanguageAndId = (username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT language, id FROM users WHERE username = (?)", [username]);
         })
         .catch((err) => {
             console.log("error in getLanguage", err);
+        });
+};
+
+module.exports.insert_message = (sender, receiver, original_body, translated_body, users, original_language, translation_language, unread) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("INSERT INTO messages (sender, receiver, original_body, translated_body, users, original_language, translation_language, unread) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [sender, receiver, original_body, translated_body, users, original_language, translation_language, unread]);
+        })
+        .catch((err) => {
+            console.log("error in insert_messages", err);
+        });
+};
+
+module.exports.getChat = (users) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT * FROM messages WHERE users = (?) ORDER BY id", [users]);
+        })
+        .catch((err) => {
+            console.log("error in getChat", err);
         });
 };
 
