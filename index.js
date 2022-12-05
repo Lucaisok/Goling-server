@@ -74,14 +74,6 @@ io.on('connection', async (socket) => {
 
     }
 
-    //socket events
-    // socket.on("join-room", (data) => {
-    //     if (data.username && data.room && data.chatPartner) {
-    //         const { username, room, chatPartner } = data;
-    //         console.log("username", username, "room", room, "chatPartner", chatPartner);
-    //     }
-    // });
-
     socket.on("message", async ({ content, language, to }) => {
         if (content && language && to) {
             const receiverData = await db.getLanguageAndId(to);
