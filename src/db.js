@@ -157,11 +157,11 @@ module.exports.getId = (username) => {
         });
 };
 
-module.exports.getLanguageAndId = (username) => {
+module.exports.getReceiverData = (username) => {
     return maria
         .then((connection) => {
             if (connection.isValid())
-                return connection.query("SELECT language, id FROM users WHERE username = (?)", [username]);
+                return connection.query("SELECT language, id, chat_partner FROM users WHERE username = (?)", [username]);
         })
         .catch((err) => {
             console.log("error in getLanguage", err);
@@ -190,4 +190,47 @@ module.exports.getChat = (users) => {
         });
 };
 
+module.exports.getUnreadMessages = (username) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT * FROM messages WHERE receiver = (?) AND unread = 1 ORDER BY id", [username]);
+        })
+        .catch((err) => {
+            console.log("error in getUnreadMessages", err);
+        });
+};
+
+module.exports.updateChatPartner = (username, id) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("UPDATE users SET chat_partner = (?) WHERE id = (?)", [username, id]);
+        })
+        .catch((err) => {
+            console.log("error in updateChatPartner", err);
+        });
+};
+
+module.exports.updateUnreadMessages = (users) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("UPDATE messages SET unread = 0 WHERE users = (?)", [users]);
+        })
+        .catch((err) => {
+            console.log("error in updateUnreadMessages", err);
+        });
+};
+
+module.exports.getMessageId = (users) => {
+    return maria
+        .then((connection) => {
+            if (connection.isValid())
+                return connection.query("SELECT id FROM messages WHERE users = (?) ORDER BY id DESC LIMIT 1", [users]);
+        })
+        .catch((err) => {
+            console.log("error in getMessageId", err);
+        });
+};
 
