@@ -76,20 +76,23 @@ io.on('connection', async (socket) => {
 
     socket.on("message", async ({ content, language, to }) => {
         if (content && language && to) {
-            const receiverData = await db.getLanguageAndId(to);
+            const receiverData = await db.getReceiverData(to);
             //this is basically the "name" of the conversation, and is made of a sorted array containing the users id´s
             const usersArray = [parseInt(socket.userId), receiverData[0].id].sort(function (a, b) { return a - b; });
             const onlineReceiver = onlineUsers.find(user => user.username === to);
+            const unread = (onlineReceiver && username !== receiverData[0].chat_partner) || !onlineReceiver;
 
             try {
                 if (language === receiverData[0].language) {
 
-                    await db.insert_message(username, to, content, content, JSON.stringify(usersArray), language, language, !Boolean(onlineReceiver));
+                    await db.insert_message(username, to, content, content, JSON.stringify(usersArray), language, language, unread);
+                    const messageId = await db.getMessageId(JSON.stringify(usersArray));
 
                     if (onlineReceiver) {
                         socket.to(onlineReceiver.socketId).emit("message", {
                             content,
                             from: socket.username,
+                            id: messageId[0].id
                         });
                     }
 
@@ -97,12 +100,14 @@ io.on('connection', async (socket) => {
                     //translate message and send to receiver!
                     const result = await translate(content, language, receiverData[0].language);
 
-                    await db.insert_message(username, to, content, result.translatedText, JSON.stringify(usersArray), language, receiverData[0].language, !Boolean(onlineReceiver));
+                    await db.insert_message(username, to, content, result.translatedText, JSON.stringify(usersArray), language, receiverData[0].language, unread);
+                    const messageId = await db.getMessageId(JSON.stringify(usersArray));
 
                     if (onlineReceiver) {
                         socket.to(onlineReceiver.socketId).emit("message", {
                             content: result.translatedText,
                             from: socket.username,
+                            id: messageId[0].id
                         });
                     }
 
@@ -115,8 +120,14 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
         console.log(`user disconnected, socketId: ${socket.id}, username: ${username}, reason: ${reason}`);
+        try {
+            await db.updateChatPartner(null, socket.userId);
+
+        } catch (err) {
+            console.warn("err", err);
+        }
     });
 });
 
