@@ -34,7 +34,6 @@ router.get("/unread-messages", auth.requireAuth, async (req, res) => {
         try {
             //retrieve unread messages
             const unreadMessages = await db.getUnreadMessages(username);
-            console.log("unreadMessages", unreadMessages);
 
             res.json(unreadMessages);
 

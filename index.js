@@ -87,7 +87,6 @@ io.on('connection', async (socket) => {
 
                     await db.insert_message(username, to, content, content, JSON.stringify(usersArray), language, language, unread);
                     const messageId = await db.getMessageId(JSON.stringify(usersArray));
-                    console.log("messageId", messageId);
 
                     if (onlineReceiver) {
                         socket.to(onlineReceiver.socketId).emit("message", {
@@ -103,7 +102,7 @@ io.on('connection', async (socket) => {
 
                     await db.insert_message(username, to, content, result.translatedText, JSON.stringify(usersArray), language, receiverData[0].language, unread);
                     const messageId = await db.getMessageId(JSON.stringify(usersArray));
-                    console.log("messageId", messageId);
+
                     if (onlineReceiver) {
                         socket.to(onlineReceiver.socketId).emit("message", {
                             content: result.translatedText,
@@ -121,8 +120,14 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
         console.log(`user disconnected, socketId: ${socket.id}, username: ${username}, reason: ${reason}`);
+        try {
+            await db.updateChatPartner(null, socket.userId);
+
+        } catch (err) {
+            console.warn("err", err);
+        }
     });
 });
 
